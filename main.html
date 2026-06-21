@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>APP Demo - 異域傳奇：消失的情報員</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom Styles for Agent Theme */
+        body {
+            background-color: #0f172a; /* Dark slate background for desktop */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            font-family: 'Noto Sans TC', sans-serif;
+        }
+
+        .tech-font {
+            font-family: 'Share Tech Mono', 'Noto Sans TC', monospace;
+        }
+
+        /* Mobile Phone Container Simulator */
+        #app-container {
+            width: 100%;
+            max-width: 414px; /* iPhone Max width */
+            height: 100vh;
+            max-height: 896px;
+            background-color: #000000;
+            position: relative;
+            overflow-x: hidden;
+            overflow-y: auto;
+            color: #4ade80; /* Matrix green */
+            box-shadow: 0 0 50px rgba(0, 0, 0, 0.8);
+            display: flex;
+            flex-direction: column;
+        }
+
+        @media (min-width: 450px) {
+            #app-container {
+                height: 85vh;
+                border-radius: 40px;
+                border: 8px solid #1e293b;
+            }
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #000; }
+        ::-webkit-scrollbar-thumb { background: #166534; border-radius: 3px; }
+
+        .btn-option {
+            background: rgba(22, 101, 52, 0.2);
+            border: 1px solid #22c55e;
+            color: #4ade80;
+            transition: all 0.2s;
+        }
+        .btn-option:hover, .btn-option:active {
+            background: #22c55e;
+            color: #000;
+        }
+
+        .content-box {
+            background: rgba(20, 83, 45, 0.2);
+            border-left: 4px solid #22c55e;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- APP Container -->
+    <div id="app-container">
+        
+        <!-- Header -->
+        <div class="bg-gray-900 border-b border-green-800 p-4 sticky top-0 z-40 flex justify-between items-center">
+            <div class="text-xs text-green-600 tech-font">遊桃園 APP 2.0</div>
+            <div class="font-bold tracking-wider text-green-400">異域傳奇：消失的情報員</div>
+            <div class="text-xs text-green-600 tech-font" id="phase-indicator">INIT</div>
+        </div>
+
+        <!-- Main Content Area -->
+        <div id="screen-content" class="p-6 flex-grow flex flex-col justify-center relative pb-20">
+            <!-- Content will be injected here via JS -->
+        </div>
+    </div>
+
+    <script>
+        // --- DATA DEFINITIONS --- //
+        
+        const quizData = [
+            {
+                q: "當你踏入中壢與平鎮交界的龍岡地區，空氣中飄散著奇特的香氣，你的第一直覺是？",
+                options: [
+                    { id: 'A', text: "這味道混雜了草藥與泥土，很適合用來隱蔽行蹤、觀察敵情。" },
+                    { id: 'B', text: "這陣幾何圖形般的綠色建築線條內，一定隱藏著某種規律的代碼。" },
+                    { id: 'C', text: "這是家鄉的芭蕉與茶香，我得找間老茶館跟當地人打聽當年的故事。" },
+                    { id: 'D', text: "先不管香氣了，這裡人流複雜，我必須立刻尋找制高點掌握街區地形。" }
+                ]
+            },
+            {
+                q: "在潛伏調查的過程中，你發現前方巷弄有可疑的影子閃過，此時你的背包裡只有一件道具，你會選擇使用？",
+                options: [
+                    { id: 'A', text: "照相機：悄悄按下快門，記錄對方的衣著特徵與配件以供回報。" },
+                    { id: 'B', text: "隨身筆記本：比對牆上新刮出的痕跡，看是否符合滇緬班兵的聯絡暗號。" },
+                    { id: 'C', text: "偽裝用的雲南傳統服飾：直接穿上它，若無其事地融入市集人群中。" },
+                    { id: 'D', text: "指北針與戰術地圖：冷靜計算對方的移動軌跡，並規劃包抄或撤退路線。" }
+                ]
+            },
+            {
+                q: "你接到了前輩「老煙槍」臨終前用老舊無線電發出的最後通訊，語音極度模糊，你認為他最後拼死留下的關鍵字是？",
+                options: [
+                    { id: 'A', text: "「神祕的香氣」：意味著最關鍵的線索，正藏在食物或日常的市集交易中。" },
+                    { id: 'B', text: "「消失的數字」：代表必須透過特定的碑文、年代或密碼本才能解開真相。" },
+                    { id: 'C', text: "「孤軍的眼淚」：指涉的是某段塵封在博物館或老相片裡、被遺忘的歷史。" },
+                    { id: 'D', text: "「飄揚的色彩」：暗示著一個非常顯眼、能在遠處作為進攻基準的地景坐標。" }
+                ]
+            }
+        ];
+
+        const personas = {
+            'A': {
+                name: "邊境偵察兵",
+                desc: "你擁有野獸般的直覺與極佳的環境敏銳度。在混亂的環境中，你總能一眼看穿偽裝，找到隱藏在日常細節中的關鍵線索。",
+                startLocation: "忠貞市場",
+                taskTitle: "解密任務 01：氣味與密信",
+                taskText: "特工，你的腳步已踏入全台滇緬文化最濃厚的忠貞市場。據報，當年的情報員將地圖碎片交給了一位販售異國香料的線人。\n\n【你的行動指引】：請立刻深入市場，尋找飄散著『草果與打拋葉』獨特香氣的攤位。抵達後，開啟 APP 的 AR 掃描功能，掃描攤位上的特定香料牌，即可解鎖下一階段的密信。\n\n（提示：完成任務後，你將獲得道具『神祕的香料包』，並解鎖下一步的分支選擇。）"
+            },
+            'B': {
+                name: "密碼破譯員",
+                desc: "數字、幾何與邏輯是你的信仰。在別人眼裡毫無意義的線索，在你眼中皆能成為事件關鍵的密碼，沒有任何隱喻能逃過你的眼睛。",
+                startLocation: "龍岡清真寺",
+                taskTitle: "解密任務 01：綠色穹頂下的代碼",
+                taskText: "特工，你來到了全台少數融合伊斯蘭與在地文化的龍岡清真寺。這裡肅穆的綠色建築線條與古老碑文裡，藏著孤軍當年撤退時的聯絡頻率。\n\n【你的行動指引】：請前往清真寺前，觀察建築物外觀的幾何圖形與特定告示牌上的建置年份。將你看到的關鍵數字輸入下方的密碼盤，若解碼成功，將啟動下一步的情報網絡。\n\n（提示：完成任務後，你將獲得道具『解密密碼本』，並解鎖下一步的分支選擇。）"
+            },
+            'C': {
+                name: "時空文史官",
+                desc: "歷史從未真正睡去，只是在等待懂得聆聽的人。你擅長透過故事、老照片與情境與人建立連結，從當事人的隻字片語中拼湊出最接近真相的歷史全貌。",
+                startLocation: "異域故事館",
+                taskTitle: "解密任務 01：塵封的家書",
+                taskText: "特工，你已成功潛伏進紀錄當年孤軍血淚的異域故事館。這裡的一張張黑白老照片與舊軍服，都承載著一段不為人知的過去。\n\n【你的行動指引】：請進入館內，尋找展區中一封當年從滇緬邊境寄回台灣、字跡有些模糊的『家書文物』。利用 APP 掃描功能對準家書上的特定關鍵字，老兵的虛擬靈魂將為你指引下一個藏匿點。\n\n（提示：完成任務後，你將獲得道具『孤軍的舊勳章』，並解鎖下一步的分支選擇。）"
+            },
+            'D': {
+                name: "戰術指揮官",
+                desc: "不論戰局多麼瞬息萬變，你永遠能保持冷靜。你擁有宏觀的視野與強大的空間定位能力，擅長利用地景與戰術資源來規劃最佳前進路線。",
+                startLocation: "國旗屋米干店",
+                taskTitle: "解密任務 01：萬旗飄揚的座標",
+                taskText: "特工，你已抵達著名的國旗屋。這裡密密麻麻、隨風飄揚的數千面國旗，不僅是精神的象徵，更是當年在戰場上用來引導轟炸與集結的戰術地標。\n\n【你的行動指引】：請站在國旗廣場的正中央，打開 APP 的數位羅盤與 AR 觀測鏡。將你的手機鏡頭對準特定高度的巨幅國旗，系統將會利用定位技術，在你的畫面上投射出當年敵軍潛伏的熱跡圖。\n\n（提示：完成任務後，你將獲得道具『戰術手圖碎片』，並解鎖下一步的分支選擇。）"
+            }
+        };
+
+        const locationData = {
+            "雲南文化公園": "沙沙……聽到了嗎？遠處傳來了清脆的打歌三弦琴聲與歡樂的踏步聲。最厲害的特工，總是將自己隱藏在最熱鬧的人群中。據報，孤軍文史線人已化裝成打歌隊員潛伏在雲南文化公園。立刻趕往那裡，開啟 APP 的 AR 視覺追蹤鏡，在旋轉的民族裙擺與舞步間，捕捉線人向你傳遞的秘密手勢與代碼！",
+            "孤軍忠貞突擊靶場": "子彈上膛，心跳加速。前方傳來陣陣模擬射擊的槍聲——你已經接近了孤軍的秘密突擊靶場。敵軍的巡邏隊正在縮小包圍圈，如果沒有足夠的防衛能力，你將無法帶出最終機密。請立刻潛入靶場，體驗模擬射擊系統。你必須在限定時間內，精準擊中移動的電子靶心，用實力證明你具備繼承孤軍傳奇的特工資格，藉此解鎖強大的防衛權限！",
+            "龍岡森林公園": "踏入這片高聳茂密的黑松樹林，白天的喧囂瞬間被隔絕在身外。踩在沙沙作響的枯葉上，手上的電報偵測儀突然劇烈震動！情報指出，半個世紀前發出最後一通求救訊號的老舊無線電發報機，就埋藏在這片松林的核心草皮下。立刻利用 APP 的數位羅盤鎖定方位，在林蔭的完美掩護下，找出沉睡數十年的黑盒子，重新與總部建立斷絕已久的神秘通訊！",
+            "魅力金三角商圈地標": "霓虹燈閃爍，香氣與人潮四溢，這裡看似是繁華的商圈，實則是龍岡最大的黑市情報交易中心。最危險的地方，往往最安全。據傳，情報員將最後的解密關鍵碎片，以無色螢光劑塗抹在金三角的核心地標招牌上。請穿上你的偽裝，混入饕客與遊客之中，當你抵達地標時，開啟 APP 的掃描功能，將隱藏在招牌背後、攸關孤軍命運的神秘圖騰一網打盡！",
+            "龍岡清真寺": "天色漸暗，綠色穹頂在暮色下顯得神祕而肅穆。最新截獲的情報顯示，當年孤軍撤台時的『聯絡頻率代碼』，就刻在清真寺古老碑文與幾何線條的隱密交界處。立刻趕往那裡，避開正門的眼線，潛入後院將密碼輸入解密盤，這將是啟動最終發報機的關鍵鑰匙！",
+            "異域故事館": "最深的祕密，往往藏在歷史的眼淚裡。據報，記錄當年孤軍血淚的異域故事館內，藏有一封字跡模糊的絕密家書文物，上面蓋有特殊的隱形墨水郵戳。立刻潛入展區，利用 APP 的光學辨識功能對準那封家書，讓塵封半世紀的老兵虛擬靈魂，為你指出最後碎片的藏匿點！",
+            "國旗屋米干店": "抬頭望去，天空中無數面密密麻麻、隨風獵獵作響的國旗震撼人心。這裡不只是精神圖騰，更是老兵們用生命拉起的戰術地標。立刻站在廣場正中央，開啟 APP 的 AR 觀測鏡，將鏡頭對準特定高度的巨幅國旗，系統將利用定位技術，在你的螢幕上投射出當年敵軍潛伏的最終熱跡圖！",
+            "忠貞市場": "黃昏的市場依舊人流如織，空氣中混雜著草果、打拋葉與米干的奇特香氣。這是最佳的掩護！線人回報，負責傳遞最後碎片的黑市商人，就偽裝在市場深處的特定香料攤位。立刻開啟 AR 掃描功能，掃描攤位上的神祕圖騰，在不驚動任何人的情況下，完成最後的情報交接！"
+        };
+
+        // Cryptic hints for buttons to hide actual locations
+        const locationHints = {
+            "雲南文化公園": "代號【迴旋舞步】：追查神祕的三弦琴聲與踏步聲",
+            "孤軍忠貞突擊靶場": "代號【火線試煉】：潛入槍聲大作的模擬防禦區",
+            "龍岡森林公園": "代號【沉睡黑盒】：前往松林深處追蹤異常電波",
+            "魅力金三角商圈地標": "代號【霓虹暗影】：混入人流尋找發光的神秘圖騰",
+            "龍岡清真寺": "代號【新月密碼】：破譯古老穹頂建築下的隱密碑文",
+            "異域故事館": "代號【塵封泣血】：潛入展區尋找蓋有隱形郵戳的文物",
+            "國旗屋米干店": "代號【獵獵赤焰】：鎖定無數旗幟交織的戰術地標",
+            "忠貞市場": "代號【辛香偽裝】：循著特殊香氣深入市集尋找線人"
+        };
+
+        // All possible locations
+        const allLocations = [
+            "忠貞市場", "龍岡清真寺", "異域故事館", "國旗屋米干店",
+            "雲南文化公園", "孤軍忠貞突擊靶場", "龍岡森林公園", "魅力金三角商圈地標"
+        ];
+
+        // --- STATE VARIABLES --- //
+        let currentQuestion = 0;
+        let scores = { A: 0, B: 0, C: 0, D: 0 };
+        let userPersona = null;
+        let visitedLocations = [];
+        let typewriterInterval = null;
+        let isTyping = false;
+        let currentFullText = "";
+
+        const contentDiv = document.getElementById('screen-content');
+        const phaseIndicator = document.getElementById('phase-indicator');
+
+        // --- STREAMING_CHUNK:Helper Functions (Typewriter effect) --- //
+        
+        function typeWriter(text, elementId, speed = 30, callback = null) {
+            const element = document.getElementById(elementId);
+            if (!element) return;
+            
+            clearInterval(typewriterInterval);
+            element.innerHTML = "";
+            currentFullText = text;
+            isTyping = true;
+            
+            let i = 0;
+            // Handle newlines properly
+            let formattedText = text.replace(/\n/g, '<br>');
+            
+            // Temporary div to parse HTML and type it out node by node would be complex.
+            // For simplicity, we just type string and replace <br> as we go.
+            // Since our text doesn't have complex HTML tags other than implied newlines, this simple approach works.
+            
+            let htmlToInject = "";
+            let textArray = text.split('');
+
+            typewriterInterval = setInterval(() => {
+                if (i < textArray.length) {
+                    if (textArray[i] === '\n') {
+                        htmlToInject += '<br>';
+                    } else {
+                        htmlToInject += textArray[i];
+                    }
+                    element.innerHTML = htmlToInject;
+                    
+                    // Auto scroll to bottom while typing
+                    contentDiv.scrollTop = contentDiv.scrollHeight;
+                    i++;
+                } else {
+                    clearInterval(typewriterInterval);
+                    isTyping = false;
+                    if(callback) callback();
+                }
+            }, speed);
+        }
+
+        // Click anywhere to skip typewriter
+        contentDiv.addEventListener('click', () => {
+            if (isTyping) {
+                clearInterval(typewriterInterval);
+                const element = document.querySelector('.typing-target');
+                if (element) {
+                    element.innerHTML = currentFullText.replace(/\n/g, '<br>');
+                }
+                isTyping = false;
+                // Reveal buttons if they were hidden waiting for callback
+                const hiddenElements = document.querySelectorAll('.hidden-until-typed');
+                hiddenElements.forEach(el => {
+                    el.classList.remove('hidden', 'opacity-0');
+                    el.classList.add('opacity-100', 'transition-opacity', 'duration-500');
+                });
+                contentDiv.scrollTop = contentDiv.scrollHeight;
+            }
+        });
+
+        // --- STREAMING_CHUNK:Game Logic & Screen Renderers --- //
+
+        function showQRScanScreen() {
+            phaseIndicator.innerText = "GPS: 龍岡大操場";
+            contentDiv.innerHTML = `
+                <div class="flex flex-col items-center justify-center h-full space-y-8">
+                    <div class="w-48 h-48 border-2 border-green-500 relative">
+                        <!-- Scanning corners -->
+                        <div class="absolute top-0 left-0 w-4 h-4 border-t-4 border-l-4 border-green-400"></div>
+                        <div class="absolute top-0 right-0 w-4 h-4 border-t-4 border-r-4 border-green-400"></div>
+                        <div class="absolute bottom-0 left-0 w-4 h-4 border-b-4 border-l-4 border-green-400"></div>
+                        <div class="absolute bottom-0 right-0 w-4 h-4 border-b-4 border-r-4 border-green-400"></div>
+                        <!-- Inner pulse -->
+                        <div class="w-full h-full bg-green-500/10 animate-pulse flex items-center justify-center">
+                            <i class="fa-solid fa-qrcode text-6xl text-green-500/50"></i>
+                        </div>
+                    </div>
+                    <div class="text-center">
+                        <p class="mb-4 text-sm text-green-300">請對準【龍岡大操場】任務起點 QR Code</p>
+                        <button onclick="startIntro()" class="btn-option px-8 py-3 rounded-md font-bold tracking-widest uppercase">模擬掃描成功</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function startIntro() {
+            phaseIndicator.innerText = "PHASE 01: 潛質測驗";
+            const introText = "「滋滋……呼叫代號『桃』，這裡是總部，聽得到嗎？」\n\n1950 年代，在滇緬邊境那片終年不見天日的密林裡，有一支被遺忘的孤軍。幾十年後，這群老兵跨越了數千公里，落腳在桃園龍岡。\n\n他們雖然放下了鋼槍，卻將當年最關鍵的一份絕密情報，拆解成無數碎片，藏進了龍岡的市集香氣、古老建築與飄揚的旗幟之中。這份情報，代號為《拼圖計畫》。\n\n現在，新一代的特工，輪到你登場了。\n\n密報指出，敵方的勢力也已悄悄滲透。總部需要先評估你的『特工潛質』，為你分派最適合的潛伏身份。";
+            
+            contentDiv.innerHTML = `
+                <div class="flex-grow">
+                    <div class="flex items-center mb-4 text-green-500">
+                        <span class="animate-pulse mr-2">●</span> 接收加密通訊中...
+                    </div>
+                    <div id="intro-text" class="text-sm leading-relaxed mb-8 typing-target min-h-[200px]"></div>
+                </div>
+                <div class="hidden-until-typed hidden opacity-0 mt-4">
+                    <button onclick="renderQuiz()" class="btn-option w-full py-4 rounded font-bold text-center">開始測驗 [START]</button>
+                </div>
+            `;
+            
+            typeWriter(introText, "intro-text", 30, () => {
+                document.querySelector('.hidden-until-typed').classList.remove('hidden', 'opacity-0');
+            });
+        }
+
+        function renderQuiz() {
+            if (currentQuestion >= quizData.length) {
+                calculatePersona();
+                return;
+            }
+
+            phaseIndicator.innerText = `PHASE 01: 潛質測驗 (${currentQuestion + 1}/3)`;
+            const qData = quizData[currentQuestion];
+            
+            let optionsHtml = '';
+            qData.options.forEach(opt => {
+                optionsHtml += `<button onclick="handleAnswer('${opt.id}')" class="btn-option w-full text-left p-4 rounded mb-3 text-sm leading-relaxed">${opt.text}</button>`;
+            });
+
+            contentDiv.innerHTML = `
+                <div class="mb-6 font-bold text-lg text-green-300">
+                    <span class="text-xs text-green-500 block mb-1">DATA GATHERING...</span>
+                    ${qData.q}
+                </div>
+                <div class="flex flex-col space-y-2">
+                    ${optionsHtml}
+                </div>
+            `;
+        }
+
+        function handleAnswer(choice) {
+            scores[choice]++;
+            currentQuestion++;
+            renderQuiz();
+        }
+
+        // --- STREAMING_CHUNK:Persona calculation and branching logic --- //
+
+        function calculatePersona() {
+            // Find highest score
+            let maxScore = -1;
+            let finalChoice = 'A';
+            
+            for (const [key, value] of Object.entries(scores)) {
+                if (value > maxScore) {
+                    maxScore = value;
+                    finalChoice = key;
+                }
+            }
+            
+            userPersona = personas[finalChoice];
+            visitedLocations.push(userPersona.startLocation);
+            
+            phaseIndicator.innerText = "PHASE 01: 身份建立";
+            
+            contentDiv.innerHTML = `
+                <div class="content-box animate-[fadeIn_0.5s_ease-out]">
+                    <div class="text-xs text-green-500 mb-1">IDENTIFICATION CONFIRMED</div>
+                    <h2 class="text-2xl font-bold text-white mb-2">${userPersona.name}</h2>
+                    <p class="text-sm mb-4 text-green-300">${userPersona.desc}</p>
+                    <div class="border-t border-green-800 pt-4 mt-4">
+                        <div class="text-xs text-green-500 mb-1">ASSIGNED START POINT</div>
+                        <div class="font-bold text-lg text-yellow-400">📍 ${userPersona.startLocation}</div>
+                    </div>
+                </div>
+                
+                <div class="mt-4 border border-green-800 p-4 rounded bg-black/50">
+                    <h3 class="font-bold text-green-400 mb-2">${userPersona.taskTitle}</h3>
+                    <div id="task-text" class="text-sm leading-relaxed typing-target min-h-[150px]"></div>
+                </div>
+                
+                <div class="hidden-until-typed hidden opacity-0 mt-6">
+                    <button onclick="phaseTwoIntro()" class="btn-option w-full py-4 rounded font-bold text-center">掃描完成，進入下一關 >></button>
+                </div>
+            `;
+
+            typeWriter(userPersona.taskText, "task-text", 25, () => {
+                document.querySelector('.hidden-until-typed').classList.remove('hidden', 'opacity-0');
+            });
+        }
+
+        function phaseTwoIntro() {
+            phaseIndicator.innerText = "PHASE 02: 突圍抉擇";
+            const warningText = "⚠️ 警告！初始據點的防禦系統已啟動，留給你的時間不多了。\n\n你剛剛解鎖的情報中，隱藏著四組高頻加密訊號，它們分別指向龍岡深處的四個「戰術安全屋」。\n\n敵軍正朝你的位置包抄，特工，請立刻選擇你接下來的潛伏與突圍方向！";
+
+            contentDiv.innerHTML = `
+                <div class="flex items-center mb-4 text-red-500 font-bold border-l-4 border-red-500 pl-2">
+                    <span class="animate-pulse mr-2">⚠️</span> ALERT TRIGGERED
+                </div>
+                <div id="warning-text" class="text-sm leading-relaxed mb-6 typing-target text-yellow-300"></div>
+                
+                <div id="options-container" class="hidden-until-typed hidden opacity-0 flex flex-col space-y-3 mt-4">
+                    <button onclick="renderTaskTwo('雲南文化公園')" class="btn-option w-full text-left p-3 rounded text-sm">📡 解析訊號 > ${locationHints['雲南文化公園']}</button>
+                    <button onclick="renderTaskTwo('孤軍忠貞突擊靶場')" class="btn-option w-full text-left p-3 rounded text-sm">📡 解析訊號 > ${locationHints['孤軍忠貞突擊靶場']}</button>
+                    <button onclick="renderTaskTwo('龍岡森林公園')" class="btn-option w-full text-left p-3 rounded text-sm">📡 解析訊號 > ${locationHints['龍岡森林公園']}</button>
+                    <button onclick="renderTaskTwo('魅力金三角商圈地標')" class="btn-option w-full text-left p-3 rounded text-sm">📡 解析訊號 > ${locationHints['魅力金三角商圈地標']}</button>
+                </div>
+            `;
+
+            typeWriter(warningText, "warning-text", 25, () => {
+                document.getElementById('options-container').classList.remove('hidden', 'opacity-0');
+            });
+        }
+
+        function renderTaskTwo(location) {
+            visitedLocations.push(location);
+            phaseIndicator.innerText = `PHASE 02: ${location}`;
+            const text = locationData[location];
+
+            contentDiv.innerHTML = `
+                <div class="content-box mb-6 border-l-4 border-yellow-500">
+                    <div class="text-xs text-yellow-500 mb-1">CURRENT LOCATION</div>
+                    <h2 class="text-xl font-bold text-white">📍 ${location}</h2>
+                </div>
+                <div id="location-text" class="text-sm leading-relaxed mb-8 typing-target min-h-[150px]"></div>
+                
+                <div class="hidden-until-typed hidden opacity-0 mt-auto">
+                    <button onclick="phaseThreeIntro()" class="btn-option w-full py-4 rounded font-bold text-center bg-yellow-900/30 border-yellow-500 text-yellow-400 hover:bg-yellow-500 hover:text-black">任務完成，截獲新訊號 >></button>
+                </div>
+            `;
+
+            typeWriter(text, "location-text", 25, () => {
+                document.querySelector('.hidden-until-typed').classList.remove('hidden', 'opacity-0');
+            });
+        }
+
+        // --- STREAMING_CHUNK:Dynamic crowd control simulation (Phase 3) --- //
+
+        function phaseThreeIntro() {
+            phaseIndicator.innerText = "PHASE 03: 終章分流";
+            const hackText = "幹得好，特工！你已經連續突破了兩道防線。\n\n此時，你手上的數位情報盤發出急促的低鳴——距離解開《拼圖計畫》核心機密，只剩下最後一塊關鍵碎片！\n\n系統已為你即時駭入敵方通訊網，成功推算出目前「防禦最薄弱、最適合突圍」的 4 個全新座標。\n\n這將是前往大終點前的最後抉擇：";
+
+            // Logic: Pick 4 locations not in visitedLocations
+            let available = allLocations.filter(loc => !visitedLocations.includes(loc));
+            // Shuffle
+            available = available.sort(() => 0.5 - Math.random());
+            let choices = available.slice(0, 4);
+
+            let optionsHtml = '';
+            choices.forEach(loc => {
+                optionsHtml += `<button onclick="renderTaskThree('${loc}')" class="btn-option w-full text-left p-3 rounded mb-3 text-sm font-bold shadow-[0_0_10px_rgba(34,197,94,0.2)]">破解座標 > ${locationHints[loc]}</button>`;
+            });
+
+            contentDiv.innerHTML = `
+                <div class="flex justify-between items-center mb-4 text-cyan-400 font-bold border-b border-cyan-800 pb-2">
+                    <span><i class="fa-solid fa-satellite-dish animate-pulse"></i> 系統駭入成功</span>
+                    <span class="text-xs">動態人流調配 ON</span>
+                </div>
+                <div id="hack-text" class="text-sm leading-relaxed mb-6 typing-target text-white"></div>
+                
+                <div id="options-container" class="hidden-until-typed hidden opacity-0 flex flex-col mt-2">
+                    ${optionsHtml}
+                </div>
+            `;
+
+            typeWriter(hackText, "hack-text", 25, () => {
+                document.getElementById('options-container').classList.remove('hidden', 'opacity-0');
+            });
+        }
+
+        function renderTaskThree(location) {
+            visitedLocations.push(location);
+            phaseIndicator.innerText = `PHASE 03: ${location}`;
+            const text = locationData[location];
+
+            contentDiv.innerHTML = `
+                <div class="content-box mb-6 border-l-4 border-cyan-500">
+                    <div class="text-xs text-cyan-500 mb-1">FINAL PUZZLE PIECE</div>
+                    <h2 class="text-xl font-bold text-white">📍 ${location}</h2>
+                </div>
+                <div id="location-text" class="text-sm leading-relaxed mb-8 typing-target min-h-[150px]"></div>
+                
+                <div class="hidden-until-typed hidden opacity-0 mt-auto bg-green-900/40 p-4 rounded border border-green-500 text-center shadow-[0_0_15px_rgba(34,197,94,0.3)]">
+                    <p class="text-white font-bold mb-3">核心情報鏈已全數解鎖！</p>
+                    <p class="text-xs text-green-300 mb-4">請立刻前往最終集結點【忠貞新村文化園區】</p>
+                    <button onclick="renderFinale()" class="btn-option w-full py-3 rounded font-bold uppercase tracking-wider bg-green-600 text-white">啟動發報機 (大結局)</button>
+                </div>
+            `;
+
+            typeWriter(text, "location-text", 20, () => {
+                document.querySelector('.hidden-until-typed').classList.remove('hidden', 'opacity-0');
+            });
+        }
+
+        // --- STREAMING_CHUNK:Finale and Free-Roam --- //
+
+        function renderFinale() {
+            phaseIndicator.innerText = "FINAL: 忠貞新村文化園區";
+            const finaleText = "「滋滋……呼叫代號『桃源』，總部已成功接收密碼。半個世紀的謎底，終於揭曉。」\n\n那份由情報員拼死守護的《拼圖計畫》，並不是軍事地圖，而是一封寫給桃園子民的「和平備忘錄」：\n\n『我們這群孤軍，終於在桃園龍岡找到了家。\n\n我們把最珍貴的寶藏，藏在了市場的米干香氣裡、清真寺的穹頂下、國旗屋的旗幟中。這份寶藏的名字，叫做「共榮與多元」。過去的歷史是散落的碎片，而你們的腳步，就是將碎片拼湊的線索。』\n\n感謝你用雙腳穿越歷史，用智慧解開塵封的記憶。";
+
+            contentDiv.innerHTML = `
+                <div class="text-center mb-6 animate-[fadeIn_1s_ease-out]">
+                    <i class="fa-solid fa-circle-check text-5xl text-yellow-400 mb-2 drop-shadow-[0_0_10px_rgba(250,204,21,0.8)]"></i>
+                    <h2 class="text-2xl font-bold text-white tracking-widest">任務達成</h2>
+                </div>
+                
+                <div class="bg-gray-800/80 p-5 rounded-lg border border-gray-600 mb-6">
+                    <div id="finale-text" class="text-sm leading-relaxed typing-target text-gray-200"></div>
+                </div>
+
+                <div class="hidden-until-typed hidden opacity-0 space-y-4">
+                    <div class="bg-gradient-to-r from-yellow-600/20 to-orange-600/20 border border-yellow-500 p-3 rounded text-center">
+                        <p class="text-yellow-400 font-bold text-sm">🏅 請至服務台領取「1/4 磁吸拼圖獎牌」</p>
+                        <p class="text-xs text-gray-400 mt-1">並核銷您的 50 元數位美食金</p>
+                    </div>
+                    <button onclick="renderFreeRoam()" class="w-full py-3 rounded font-bold bg-white text-black hover:bg-gray-200 transition-colors shadow-[0_0_15px_rgba(255,255,255,0.5)]">開啟自由漫遊模式</button>
+                </div>
+            `;
+
+            // Adding font-awesome dynamically for the check icon if not loaded
+            const fa = document.createElement('link');
+            fa.rel = 'stylesheet';
+            fa.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css';
+            document.head.appendChild(fa);
+
+            typeWriter(finaleText, "finale-text", 30, () => {
+                document.querySelector('.hidden-until-typed').classList.remove('hidden', 'opacity-0');
+            });
+        }
+
+        function renderFreeRoam() {
+            phaseIndicator.innerText = "MODE: 自由漫遊";
+            
+            // Generate map pins based on visited status
+            let pinsHtml = '';
+            allLocations.forEach((loc, index) => {
+                const isVisited = visitedLocations.includes(loc);
+                const colorClass = isVisited ? 'bg-green-500' : 'bg-gray-600';
+                const textClass = isVisited ? 'text-green-400' : 'text-gray-400';
+                const icon = isVisited ? 'fa-check' : 'fa-location-dot';
+                
+                pinsHtml += `
+                    <div class="flex items-center p-3 border-b border-gray-800 last:border-0">
+                        <div class="w-8 h-8 rounded-full ${colorClass} bg-opacity-20 flex items-center justify-center mr-3">
+                            <i class="fa-solid ${icon} ${colorClass.replace('bg-', 'text-')}"></i>
+                        </div>
+                        <div class="flex-grow">
+                            <div class="text-sm font-bold ${textClass}">${loc}</div>
+                            <div class="text-xs text-gray-500">${isVisited ? '已解鎖劇情' : '尚未探索'}</div>
+                        </div>
+                        <button class="px-3 py-1 text-xs border border-gray-600 rounded text-gray-300 hover:bg-gray-700">導航</button>
+                    </div>
+                `;
+            });
+
+            contentDiv.innerHTML = `
+                <div class="text-center mb-4">
+                    <p class="text-green-400 font-bold">📡 數位管制已解除</p>
+                    <p class="text-xs text-gray-400 mt-1">AR 時空觀測鏡功能無限期開放</p>
+                </div>
+                
+                <div class="bg-gray-900 rounded-xl border border-gray-700 overflow-hidden mb-4 shadow-lg shadow-black">
+                    <div class="bg-gray-800 px-4 py-2 text-xs text-gray-300 border-b border-gray-700 flex justify-between">
+                        <span>全區據點雷達</span>
+                        <span>進度: ${visitedLocations.length}/8</span>
+                    </div>
+                    <div class="h-[300px] overflow-y-auto">
+                        ${pinsHtml}
+                    </div>
+                </div>
+
+                <div class="bg-blue-900/30 border border-blue-500/50 p-4 rounded text-sm text-blue-200">
+                    <p>脫下特工的緊繃偽裝，以最放鬆的步伐享受街區吧！您可以自由前往錯過的站點捕捉地景，或至合作店家核銷美食金。</p>
+                </div>
+                
+                <button onclick="location.reload()" class="mt-6 text-xs text-gray-500 underline text-center w-full">重新啟動 Demo</button>
+            `;
+        }
+
+        // Initialize App
+        window.onload = showQRScanScreen;
+    </script>
+</body>
+</html>
